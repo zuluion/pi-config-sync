@@ -16,12 +16,12 @@ export function registerCloudSetupCommand(pi: ExtensionAPI): void {
     description: 'Configure WebDAV or GitHub Gist cloud backup',
     handler: async (_args, ctx) => {
       const provider = await ctx.ui.select('Select cloud provider:', [
-        { label: 'WebDAV', value: 'webdav' },
-        { label: 'GitHub Gist', value: 'gist' },
+        'WebDAV',
+        'GitHub Gist',
       ]);
       if (!provider) return;
 
-      if (provider === 'webdav') {
+      if (provider === 'WebDAV') {
         const url = await ctx.ui.input(
           'WebDAV URL:',
           'https://dav.example.com/dav/'
@@ -54,7 +54,7 @@ export function registerCloudSetupCommand(pi: ExtensionAPI): void {
         };
         await writeJson(CONFIG_FILE, cfg);
         ctx.ui.notify('✓ WebDAV configured.', 'info');
-      } else {
+      } else if (provider === 'GitHub Gist') {
         const token = await ctx.ui.input('GitHub token:', 'ghp_...');
         if (!token) return;
 

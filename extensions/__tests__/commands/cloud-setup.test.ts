@@ -65,7 +65,7 @@ describe('Cloud Setup Command', () => {
     const handler = mockPi.registerCommand.mock.calls[0][1].handler;
 
     // Mock user inputs
-    mockCtx.ui.select.mockResolvedValue('webdav');
+    mockCtx.ui.select.mockResolvedValue('WebDAV');
     mockCtx.ui.input
       .mockResolvedValueOnce('https://dav.example.com/dav/')
       .mockResolvedValueOnce('testuser')
@@ -85,7 +85,7 @@ describe('Cloud Setup Command', () => {
     const handler = mockPi.registerCommand.mock.calls[0][1].handler;
 
     // Mock user inputs
-    mockCtx.ui.select.mockResolvedValue('gist');
+    mockCtx.ui.select.mockResolvedValue('GitHub Gist');
     mockCtx.ui.input.mockResolvedValueOnce('ghp_test1234567890');
 
     await handler(undefined, mockCtx);
