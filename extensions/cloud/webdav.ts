@@ -31,8 +31,32 @@ export async function webdavRequest(
   }
 
   try {
-    return await fetch(url, { method, headers, body });
+    const res = await fetch(url, { method, headers, body });
+    
+    // 将 HTTP 错误转换为可重试的异常
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        throw new WebDAVError(
+          `Authentication failed: ${res.status} ${res.statusText}`,
+          ErrorCodes.CLOUD_AUTH_FAILED
+        );
+      }
+      if (res.status === 404) {
+        throw new WebDAVError(
+          `File not found: ${res.statusText}`,
+          ErrorCodes.CLOUD_NOT_FOUND
+        );
+      }
+      // 5xx 和 429 为可重试错误
+      throw new WebDAVError(
+        `Request failed: ${res.status} ${res.statusText}`,
+        ErrorCodes.CLOUD_NETWORK_ERROR
+      );
+    }
+    
+    return res;
   } catch (err) {
+    if (err instanceof WebDAVError) throw err;
     throw new WebDAVError(
       `Network error: ${err instanceof Error ? err.message : 'Unknown error'}`,
       ErrorCodes.CLOUD_NETWORK_ERROR,
@@ -68,48 +92,11 @@ export async function webdavUpload(
     }
   }
 
-  const res = await withRetry(() => webdavRequest(config, 'PUT', '', data), {
-    retryableErrors: [ErrorCodes.CLOUD_NETWORK_ERROR],
-  });
-
-  if (!res.ok) {
-    if (res.status === 401 || res.status === 403) {
-      throw new WebDAVError(
-        `Authentication failed: ${res.status} ${res.statusText}`,
-        ErrorCodes.CLOUD_AUTH_FAILED
-      );
-    }
-    throw new WebDAVError(
-      `Upload failed: ${res.status} ${res.statusText}`,
-      ErrorCodes.CLOUD_NETWORK_ERROR
-    );
-  }
+  await withRetry(() => webdavRequest(config, 'PUT', '', data));
 }
 
 export async function webdavDownload(config: WebDAVConfig): Promise<string> {
-  const res = await withRetry(() => webdavRequest(config, 'GET', ''), {
-    retryableErrors: [ErrorCodes.CLOUD_NETWORK_ERROR],
-  });
-
-  if (!res.ok) {
-    if (res.status === 401 || res.status === 403) {
-      throw new WebDAVError(
-        `Authentication failed: ${res.status} ${res.statusText}`,
-        ErrorCodes.CLOUD_AUTH_FAILED
-      );
-    }
-    if (res.status === 404) {
-      throw new WebDAVError(
-        `File not found: ${res.statusText}`,
-        ErrorCodes.CLOUD_NOT_FOUND
-      );
-    }
-    throw new WebDAVError(
-      `Download failed: ${res.status} ${res.statusText}`,
-      ErrorCodes.CLOUD_NETWORK_ERROR
-    );
-  }
-
+  const res = await withRetry(() => webdavRequest(config, 'GET', ''));
   return res.text();
 }
 

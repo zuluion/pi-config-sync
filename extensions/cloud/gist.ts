@@ -19,28 +19,18 @@ export async function gistHeaders(
   };
 }
 
-export async function gistUpload(
-  config: GistConfig,
-  data: string
-): Promise<string> {
-  const headers = await gistHeaders(config.token);
-  const filename = config.filename || 'pi-config-backup.json';
-
-  if (config.gistId) {
-    // Update existing gist
-    const res = await withRetry(
-      () =>
-        fetch(`https://api.github.com/gists/${config.gistId}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({
-            description: `Pi config backup — ${new Date().toISOString()}`,
-            files: { [filename]: { content: data } },
-          }),
-        }),
-      { retryableErrors: [ErrorCodes.CLOUD_NETWORK_ERROR] }
-    );
-
+async function gistRequest(
+  url: string,
+  method: string,
+  token: string,
+  body?: string
+): Promise<Response> {
+  const headers = await gistHeaders(token);
+  
+  try {
+    const res = await fetch(url, { method, headers, body });
+    
+    // 将 HTTP 错误转换为可重试的异常
     if (!res.ok) {
       if (res.status === 401 || res.status === 403) {
         throw new GistError(
@@ -50,78 +40,76 @@ export async function gistUpload(
       }
       if (res.status === 404) {
         throw new GistError(
-          `Gist not found: ${config.gistId}`,
+          `Gist not found: ${res.statusText}`,
           ErrorCodes.CLOUD_NOT_FOUND
         );
       }
+      // 5xx 和 429 为可重试错误
       throw new GistError(
-        `Gist update failed: ${res.status}`,
+        `Request failed: ${res.status}`,
         ErrorCodes.CLOUD_NETWORK_ERROR
       );
     }
+    
+    return res;
+  } catch (err) {
+    if (err instanceof GistError) throw err;
+    throw new GistError(
+      `Network error: ${err instanceof Error ? err.message : 'Unknown error'}`,
+      ErrorCodes.CLOUD_NETWORK_ERROR,
+      err instanceof Error ? err : undefined
+    );
+  }
+}
+
+export async function gistUpload(
+  config: GistConfig,
+  data: string
+): Promise<string> {
+  const headers = await gistHeaders(config.token);
+  const filename = config.filename || 'pi-config-backup.json';
+
+  if (config.gistId) {
+    // Update existing gist
+    await withRetry(() =>
+      gistRequest(
+        `https://api.github.com/gists/${config.gistId}`,
+        'PATCH',
+        config.token,
+        JSON.stringify({
+          description: `Pi config backup — ${new Date().toISOString()}`,
+          files: { [filename]: { content: data } },
+        })
+      )
+    );
     return config.gistId;
   }
 
   // Create new gist
-  const res = await withRetry(
-    () =>
-      fetch('https://api.github.com/gists', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          description: 'Pi coding agent config backup',
-          public: false,
-          files: { [filename]: { content: data } },
-        }),
-      }),
-    { retryableErrors: [ErrorCodes.CLOUD_NETWORK_ERROR] }
+  const res = await withRetry(() =>
+    gistRequest(
+      'https://api.github.com/gists',
+      'POST',
+      config.token,
+      JSON.stringify({
+        description: 'Pi coding agent config backup',
+        public: false,
+        files: { [filename]: { content: data } },
+      })
+    )
   );
-
-  if (!res.ok) {
-    if (res.status === 401 || res.status === 403) {
-      throw new GistError(
-        `Authentication failed: ${res.status}`,
-        ErrorCodes.CLOUD_AUTH_FAILED
-      );
-    }
-    throw new GistError(
-      `Gist create failed: ${res.status}`,
-      ErrorCodes.CLOUD_NETWORK_ERROR
-    );
-  }
-
   const result = (await res.json()) as { id: string };
   return result.id;
 }
 
 export async function gistDownload(config: GistConfig): Promise<string> {
-  const headers = await gistHeaders(config.token);
-
-  const res = await withRetry(
-    () =>
-      fetch(`https://api.github.com/gists/${config.gistId}`, { headers }),
-    { retryableErrors: [ErrorCodes.CLOUD_NETWORK_ERROR] }
+  const res = await withRetry(() =>
+    gistRequest(
+      `https://api.github.com/gists/${config.gistId}`,
+      'GET',
+      config.token
+    )
   );
-
-  if (!res.ok) {
-    if (res.status === 401 || res.status === 403) {
-      throw new GistError(
-        `Authentication failed: ${res.status}`,
-        ErrorCodes.CLOUD_AUTH_FAILED
-      );
-    }
-    if (res.status === 404) {
-      throw new GistError(
-        `Gist not found: ${config.gistId}`,
-        ErrorCodes.CLOUD_NOT_FOUND
-      );
-    }
-    throw new GistError(
-      `Gist fetch failed: ${res.status}`,
-      ErrorCodes.CLOUD_NETWORK_ERROR
-    );
-  }
-
   const result = (await res.json()) as {
     files: Record<string, { content: string }>;
   };

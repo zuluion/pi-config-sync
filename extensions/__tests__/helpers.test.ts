@@ -138,19 +138,28 @@ describe('Base64 Operations', () => {
 
   describe('fromBase64', () => {
     it('should decode base64 to text', () => {
-      expect(fromBase64('aGVsbG8=')).toBe('hello');
-      expect(fromBase64('SGVsbG8sIOS4lueVjCE=')).toBe('Hello, 世界!');
+      const buf1 = fromBase64('aGVsbG8=');
+      expect(buf1).toBeInstanceOf(Buffer);
+      expect(buf1.toString('utf-8')).toBe('hello');
+      
+      const buf2 = fromBase64('SGVsbG8sIOS4lueVjCE=');
+      expect(buf2).toBeInstanceOf(Buffer);
+      expect(buf2.toString('utf-8')).toBe('Hello, 世界!');
     });
 
     it('should handle empty string', () => {
-      expect(fromBase64('')).toBe('');
+      const buf = fromBase64('');
+      expect(buf).toBeInstanceOf(Buffer);
+      expect(buf.length).toBe(0);
     });
   });
 
   describe('roundtrip', () => {
     it('should preserve text through encode/decode', () => {
       const original = 'Hello, World! 🌍';
-      expect(fromBase64(toBase64(original))).toBe(original);
+      const decoded = fromBase64(toBase64(original));
+      expect(decoded).toBeInstanceOf(Buffer);
+      expect(decoded.toString('utf-8')).toBe(original);
     });
   });
 });
@@ -213,16 +222,14 @@ describe('Retry Logic', () => {
       const fn = async () => {
         attempts++;
         if (attempts < 3) {
-          const error = new Error('Network error') as AppError;
-          error.code = ErrorCodes.CLOUD_NETWORK_ERROR;
-          throw error;
+          throw new Error('Network error');
         }
         return 'success';
       };
 
       const result = await withRetry(fn, {
         maxRetries: 3,
-        retryableErrors: [ErrorCodes.CLOUD_NETWORK_ERROR],
+        retryableCheck: (err) => err instanceof Error && err.message === 'Network error',
       });
       expect(result).toBe('success');
       expect(attempts).toBe(3);
@@ -232,15 +239,13 @@ describe('Retry Logic', () => {
       let attempts = 0;
       const fn = async () => {
         attempts++;
-        const error = new Error('Network error') as AppError;
-        error.code = ErrorCodes.CLOUD_NETWORK_ERROR;
-        throw error;
+        throw new Error('Network error');
       };
 
       await expect(
         withRetry(fn, {
           maxRetries: 2,
-          retryableErrors: [ErrorCodes.CLOUD_NETWORK_ERROR],
+          retryableCheck: (err) => err instanceof Error && err.message === 'Network error',
         })
       ).rejects.toThrow();
       expect(attempts).toBe(3); // initial + 2 retries

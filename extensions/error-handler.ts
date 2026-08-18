@@ -61,41 +61,8 @@ export function handleCommandError(
 }
 
 function getErrorMessage(error: AppError): string {
-  // Try to use specific error message template
-  const templateFn = ErrorMessages[error.code as keyof typeof ErrorMessages];
-  if (templateFn) {
-    // Extract relevant info from error message
-    const info = extractErrorInfo(error);
-    return templateFn(info);
-  }
-
-  // Fallback to generic message
-  return `${error.name}: ${error.message}`;
-}
-
-function extractErrorInfo(error: AppError): string {
-  // Try to extract meaningful info from error message
-  const message = error.message;
-
-  // For file errors, extract path
-  if (error instanceof FileError) {
-    const pathMatch = message.match(/(?:File not found|Failed to read|Failed to write|Permission denied): (.+)/);
-    if (pathMatch) return pathMatch[1];
-  }
-
-  // For cloud errors, extract resource/provider
-  if (error instanceof CloudError) {
-    const resourceMatch = message.match(/(?:Authentication failed|Resource not found|Network error|Rate limited)(?:\s+with\s+(\w+))?(?:\s*:\s*(.+))?/);
-    if (resourceMatch) return resourceMatch[2] || resourceMatch[1] || 'unknown';
-  }
-
-  // For validation errors, extract value
-  if (error instanceof ValidationError) {
-    const valueMatch = message.match(/(?:Invalid URL|Missing configuration|Unsupported backup version):\s*(.+)/);
-    if (valueMatch) return valueMatch[1];
-  }
-
-  return message;
+  // 直接使用错误消息，不再尝试提取
+  return error.message;
 }
 
 // ─── User-Friendly Error Suggestions ─────────────────────────────────────────

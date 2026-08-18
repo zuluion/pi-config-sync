@@ -157,8 +157,14 @@ describe('Import Command', () => {
     registerImportCommand(mockPi as any);
     const handler = mockPi.registerCommand.mock.calls[0][1].handler;
     
-    // Should throw ValidationError
-    await expect(handler('/path/to/backup.json', mockCtx)).rejects.toThrow();
+    // Should handle error gracefully (not throw)
+    await handler('/path/to/backup.json', mockCtx);
+    
+    // Should notify user about the error
+    expect(mockCtx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining('Unsupported version'),
+      'error'
+    );
   });
 
   it('should handle user cancellation', async () => {

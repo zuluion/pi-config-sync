@@ -18,9 +18,10 @@ export function registerImportCommand(pi: ExtensionAPI): void {
   pi.registerCommand('import-config', {
     description: 'Restore from local file or cloud (webdav/gist)',
     handler: async (args, ctx) => {
-      const source = args?.trim();
-      let data: BackupData | null = null;
-      let sourceLabel = '';
+      try {
+        const source = args?.trim();
+        let data: BackupData | null = null;
+        let sourceLabel = '';
 
       // Determine source
       if (!source || source === 'webdav' || source === 'gist') {
@@ -120,7 +121,7 @@ export function registerImportCommand(pi: ExtensionAPI): void {
 
       // Restore files
       if (data.files && Object.keys(data.files).length > 0) {
-        const count = await restoreFiles(data.files);
+        const count = await restoreFiles(data.files, ['settings.json']);
         ctx.ui.notify(`Restored ${count} file(s).`, 'info');
       }
 
@@ -158,6 +159,9 @@ export function registerImportCommand(pi: ExtensionAPI): void {
         ].join('\n'),
         failed > 0 ? 'warning' : 'info'
       );
+      } catch (err) {
+        handleCommandError(ctx, err, 'import config');
+      }
     },
   });
 }

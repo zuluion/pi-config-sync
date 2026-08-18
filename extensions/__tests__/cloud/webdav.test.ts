@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { webdavUpload, webdavDownload, validateWebDAVConfig } from '../../cloud/webdav';
-import { WebDAVError, ErrorCodes } from '../../types';
+import { WebDAVError, ErrorCodes, AppError } from '../../types';
 
 // Mock fetch
 const mockFetch = vi.fn();
@@ -33,7 +33,31 @@ describe('WebDAV Adapter', () => {
       expect(mockFetch).toHaveBeenCalled();
     });
 
-    // Skip auth failure test due to retry complexity
+    it('should retry on 503 error', async () => {
+      // Mock PUT 返回 503
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        statusText: 'Service Unavailable',
+      });
+      // Mock 重试后成功
+      mockFetch.mockResolvedValueOnce({ ok: true, statusText: 'OK' });
+
+      await expect(webdavUpload(config, 'test data')).resolves.toBeUndefined();
+      expect(mockFetch).toHaveBeenCalledTimes(2); // 2x PUT
+    });
+
+    it('should throw WebDAVError on auth failure without retry', async () => {
+      // Mock PUT 返回 401
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+      });
+
+      await expect(webdavUpload(config, 'test data')).rejects.toThrow(WebDAVError);
+      expect(mockFetch).toHaveBeenCalledTimes(1); // 1x PUT (no retry)
+    });
   });
 
   describe('webdavDownload', () => {
@@ -57,7 +81,19 @@ describe('WebDAV Adapter', () => {
       await expect(webdavDownload(config)).rejects.toThrow(WebDAVError);
     });
 
-    // Skip network error test due to retry complexity
+    it('should retry on network error', async () => {
+      // Mock 第一次请求失败
+      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      // Mock 重试后成功
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve('downloaded data'),
+      });
+
+      const result = await webdavDownload(config);
+      expect(result).toBe('downloaded data');
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('validateWebDAVConfig', () => {

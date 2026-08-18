@@ -7,7 +7,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { createHash } from 'node:crypto';
 import type { BackupData } from './types';
-import { FileError, ErrorCodes, SKIP_SETTINGS_KEYS } from './types';
+import { AppError, FileError, ErrorCodes, SKIP_SETTINGS_KEYS } from './types';
 
 // ─── Paths ───────────────────────────────────────────────────────────────────
 
@@ -98,28 +98,53 @@ export function filterSettings(settings: Record<string, unknown>): Record<string
 
 // ─── Base64 Operations ───────────────────────────────────────────────────────
 
-export function toBase64(text: string): string {
-  return Buffer.from(text, 'utf-8').toString('base64');
+export function toBase64(data: string | Buffer): string {
+  if (Buffer.isBuffer(data)) {
+    return data.toString('base64');
+  }
+  return Buffer.from(data, 'utf-8').toString('base64');
 }
 
-export function fromBase64(b64: string): string {
-  return Buffer.from(b64, 'base64').toString('utf-8');
+export function fromBase64(b64: string): Buffer {
+  return Buffer.from(b64, 'base64');
 }
 
 // ─── Checksum Operations ─────────────────────────────────────────────────────
 
 export function calculateChecksum(data: BackupData): string {
-  const content = JSON.stringify(data.settings) + JSON.stringify(data.packages);
-  return createHash('sha256').update(content).digest('hex');
+  const hash = createHash('sha256');
+  hash.update(JSON.stringify(data.settings));
+  hash.update(JSON.stringify(data.packages));
+  
+  // 对文件名排序以保证确定性哈希
+  const sortedFiles = Object.keys(data.files || {}).sort();
+  for (const key of sortedFiles) {
+    hash.update(key);
+    hash.update(data.files[key]);
+  }
+  
+  return hash.digest('hex');
 }
 
 // ─── Retry Logic ─────────────────────────────────────────────────────────────
 
 export interface RetryOptions {
   maxRetries?: number;
-  timeout?: number;
-  retryableErrors?: string[];
+  timeoutMs?: number;
+  retryableCheck?: (err: unknown) => boolean;
 }
+
+const DEFAULT_RETRYABLE = (err: unknown): boolean => {
+  // 不重试认证错误、验证错误、资源未找到
+  if (err instanceof AppError) {
+    const nonRetryable = [ErrorCodes.CLOUD_AUTH_FAILED, ErrorCodes.VALIDATION_UNSUPPORTED_VERSION, ErrorCodes.CLOUD_NOT_FOUND];
+    return !nonRetryable.includes(err.code as any);
+  }
+  // 网络错误、TypeError (fetch 失败) 可重试
+  if (err instanceof TypeError) return true;
+  if (err instanceof Error && err.message === 'TIMEOUT') return true;
+  return false;
+};
 
 export async function withRetry<T>(
   fn: () => Promise<T>,
@@ -127,30 +152,28 @@ export async function withRetry<T>(
 ): Promise<T> {
   const {
     maxRetries = 3,
-    timeout = 30000,
-    retryableErrors = [ErrorCodes.CLOUD_NETWORK_ERROR],
+    timeoutMs = 30000,
+    retryableCheck = DEFAULT_RETRYABLE,
   } = options;
 
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    
     try {
-      const result = await Promise.race([
-        fn(),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('TIMEOUT')), timeout)
-        ),
-      ]);
+      const result = await fn();
+      clearTimeout(timer);
       return result;
     } catch (err) {
+      clearTimeout(timer);
       lastError = err;
+      
       const isLastAttempt = attempt === maxRetries;
-      const isRetryable =
-        err instanceof Error &&
-        'code' in err &&
-        retryableErrors.includes((err as { code: string }).code);
+      const shouldRetry = retryableCheck(err);
 
-      if (isLastAttempt || !isRetryable) {
+      if (isLastAttempt || !shouldRetry) {
         throw err;
       }
 

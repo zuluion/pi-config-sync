@@ -5,13 +5,12 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import type { CloudConfig } from '../types';
 import { FileError, ErrorCodes, AppError } from '../types';
-import { readJson, readSettings, filterSettings, extractPackages, calculateChecksum } from '../helpers';
+import { readJson, readSettings, filterSettings, extractPackages, calculateChecksum, writeJson } from '../helpers';
 import { collectFiles } from '../file-collector';
 import { webdavUpload } from '../cloud/webdav';
 import { gistUpload } from '../cloud/gist';
 import { BackupHistoryManager } from '../history';
 import { CONFIG_FILE } from '../helpers';
-import { handleCommandError, getErrorSuggestion } from '../error-handler';
 
 // ─── Config Backup Command ───────────────────────────────────────────────────
 
@@ -63,7 +62,6 @@ export function registerBackupCommand(pi: ExtensionAPI): void {
           // Persist the gist ID for future updates
           if (!cfg.gist.gistId) {
             cfg.gist.gistId = gistId;
-            const { writeJson } = await import('../helpers');
             await writeJson(CONFIG_FILE, cfg);
           }
           ctx.ui.notify(`✓ Backed up to Gist: ${gistId}`, 'info');

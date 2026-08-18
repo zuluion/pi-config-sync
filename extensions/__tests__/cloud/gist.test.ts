@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { gistUpload, gistDownload, validateGistConfig } from '../../cloud/gist';
-import { GistError, ErrorCodes } from '../../types';
+import { GistError, ErrorCodes, AppError } from '../../types';
 
 // Mock fetch
 const mockFetch = vi.fn();
@@ -60,7 +60,29 @@ describe('Gist Adapter', () => {
       await expect(gistUpload(config, 'test data')).rejects.toThrow(GistError);
     });
 
-    // Skip network error test due to retry complexity
+    it('should retry on network error', async () => {
+      // Mock 第一次请求失败
+      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      // Mock 重试后成功
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ id: 'new-gist-id' }),
+      });
+
+      const result = await gistUpload(config, 'test data');
+      expect(result).toBe('new-gist-id');
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    it('should throw GistError on auth failure without retry', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+      });
+
+      await expect(gistUpload(config, 'test data')).rejects.toThrow(GistError);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('gistDownload', () => {
@@ -98,6 +120,26 @@ describe('Gist Adapter', () => {
       });
 
       await expect(gistDownload(config)).rejects.toThrow(GistError);
+    });
+
+    it('should retry on network error', async () => {
+      config.gistId = 'test-gist-id';
+      // Mock 第一次请求失败
+      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      // Mock 重试后成功
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            files: {
+              'pi-config-backup.json': { content: 'downloaded content' },
+            },
+          }),
+      });
+
+      const result = await gistDownload(config);
+      expect(result).toBe('downloaded content');
+      expect(mockFetch).toHaveBeenCalledTimes(2);
     });
   });
 

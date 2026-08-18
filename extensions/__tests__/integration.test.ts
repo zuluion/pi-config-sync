@@ -34,7 +34,8 @@ describe('Integration Tests', () => {
       const encoded = toBase64(originalContent);
       const decoded = fromBase64(encoded);
 
-      expect(decoded).toBe(originalContent);
+      expect(decoded).toBeInstanceOf(Buffer);
+      expect(decoded.toString('utf-8')).toBe(originalContent);
     });
 
     it('should handle backup history correctly', async () => {
@@ -119,12 +120,15 @@ describe('Integration Tests', () => {
       const encoded = toBase64(original);
       const decoded = fromBase64(encoded);
 
-      expect(decoded).toBe(original);
+      expect(decoded).toBeInstanceOf(Buffer);
+      expect(decoded.toString('utf-8')).toBe(original);
     });
 
     it('should handle empty strings', () => {
       expect(toBase64('')).toBe('');
-      expect(fromBase64('')).toBe('');
+      const buf = fromBase64('');
+      expect(buf).toBeInstanceOf(Buffer);
+      expect(buf.length).toBe(0);
     });
 
     it('should handle large content', () => {
@@ -132,7 +136,8 @@ describe('Integration Tests', () => {
       const encoded = toBase64(largeContent);
       const decoded = fromBase64(encoded);
 
-      expect(decoded).toBe(largeContent);
+      expect(decoded).toBeInstanceOf(Buffer);
+      expect(decoded.toString('utf-8')).toBe(largeContent);
     });
   });
 
@@ -152,7 +157,7 @@ describe('Integration Tests', () => {
     it('should handle invalid base64 gracefully', () => {
       // Should not throw
       const decoded = fromBase64('invalid-base64');
-      expect(typeof decoded).toBe('string');
+      expect(decoded).toBeInstanceOf(Buffer);
     });
   });
 });
