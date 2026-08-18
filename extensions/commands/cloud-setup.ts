@@ -127,18 +127,35 @@ export function registerCloudStatusCommand(pi: ExtensionAPI): void {
         return;
       }
 
-      const lines: string[] = [`Provider: ${cfg.provider}`];
-      if (cfg.provider === 'webdav' && cfg.webdav) {
-        lines.push(`URL: ${cfg.webdav.url}`);
-        lines.push(`Username: ${cfg.webdav.username}`);
-        lines.push(`Remote path: ${cfg.webdav.remotePath}`);
-        lines.push(`Password: ${'*'.repeat(cfg.webdav.password.length)}`);
-      } else if (cfg.provider === 'gist' && cfg.gist) {
-        lines.push(`Token: ${cfg.gist.token.slice(0, 4)}${'*'.repeat(6)}`);
+      const lines: string[] = [];
+      
+      // 显示默认备份目标
+      lines.push(`Default backup target: ${cfg.provider}`);
+      lines.push('');
+      
+      // 显示所有已配置的云服务
+      if (cfg.webdav) {
+        lines.push('── WebDAV ──');
+        lines.push(`  URL: ${cfg.webdav.url}`);
+        lines.push(`  Username: ${cfg.webdav.username}`);
+        lines.push(`  Remote path: ${cfg.webdav.remotePath}`);
+        lines.push(`  Password: ${'*'.repeat(cfg.webdav.password.length)}`);
+        lines.push('');
+      }
+      
+      if (cfg.gist) {
+        lines.push('── GitHub Gist ──');
+        lines.push(`  Token: ${cfg.gist.token.slice(0, 4)}${'*'.repeat(6)}`);
         lines.push(
-          `Gist ID: ${cfg.gist.gistId || '(not yet created)'}`
+          `  Gist ID: ${cfg.gist.gistId || '(not yet created)'}`
         );
-        lines.push(`Filename: ${cfg.gist.filename}`);
+        lines.push(`  Filename: ${cfg.gist.filename}`);
+        lines.push('');
+      }
+      
+      if (!cfg.webdav && !cfg.gist) {
+        lines.push('No cloud provider configured.');
+        lines.push('Run /config-cloud-setup to set up.');
       }
 
       ctx.ui.notify(lines.join('\n'), 'info');

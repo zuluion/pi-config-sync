@@ -153,7 +153,11 @@ describe('Cloud Status Command', () => {
     await handler(undefined, mockCtx);
 
     expect(mockCtx.ui.notify).toHaveBeenCalledWith(
-      expect.stringContaining('Provider: webdav'),
+      expect.stringContaining('Default backup target: webdav'),
+      'info'
+    );
+    expect(mockCtx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining('── WebDAV ──'),
       'info'
     );
     expect(mockCtx.ui.notify).toHaveBeenCalledWith(
@@ -173,7 +177,11 @@ describe('Cloud Status Command', () => {
     await handler(undefined, mockCtx);
 
     expect(mockCtx.ui.notify).toHaveBeenCalledWith(
-      expect.stringContaining('Provider: gist'),
+      expect.stringContaining('Default backup target: gist'),
+      'info'
+    );
+    expect(mockCtx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining('── GitHub Gist ──'),
       'info'
     );
     expect(mockCtx.ui.notify).toHaveBeenCalledWith(
