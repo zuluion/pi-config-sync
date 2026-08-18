@@ -61,6 +61,9 @@ describe('Cloud Setup Command', () => {
   });
 
   it('should configure WebDAV provider', async () => {
+    const { readJson } = await import('../../helpers');
+    (readJson as any).mockRejectedValue(new Error('File not found'));
+    
     registerCloudSetupCommand(mockPi as any);
     const handler = mockPi.registerCommand.mock.calls[0][1].handler;
 
@@ -81,6 +84,9 @@ describe('Cloud Setup Command', () => {
   });
 
   it('should configure Gist provider', async () => {
+    const { readJson } = await import('../../helpers');
+    (readJson as any).mockRejectedValue(new Error('File not found'));
+    
     registerCloudSetupCommand(mockPi as any);
     const handler = mockPi.registerCommand.mock.calls[0][1].handler;
 

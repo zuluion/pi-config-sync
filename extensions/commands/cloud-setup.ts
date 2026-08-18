@@ -48,9 +48,19 @@ export function registerCloudSetupCommand(pi: ExtensionAPI): void {
           return;
         }
 
+        // 读取现有配置，保留其他 provider 的配置
+        let existingCfg: Partial<CloudConfig> = {};
+        try {
+          existingCfg = await readJson<CloudConfig>(CONFIG_FILE);
+        } catch {
+          // 配置文件不存在，忽略
+        }
+        
         const cfg: CloudConfig = {
           provider: 'webdav',
           webdav: webdavConfig,
+          // 保留其他 provider 的配置
+          gist: existingCfg.gist,
         };
         await writeJson(CONFIG_FILE, cfg);
         ctx.ui.notify('✓ WebDAV configured.', 'info');
@@ -68,9 +78,19 @@ export function registerCloudSetupCommand(pi: ExtensionAPI): void {
           return;
         }
 
+        // 读取现有配置，保留其他 provider 的配置
+        let existingCfg: Partial<CloudConfig> = {};
+        try {
+          existingCfg = await readJson<CloudConfig>(CONFIG_FILE);
+        } catch {
+          // 配置文件不存在，忽略
+        }
+        
         const cfg: CloudConfig = {
           provider: 'gist',
           gist: gistConfig,
+          // 保留其他 provider 的配置
+          webdav: existingCfg.webdav,
         };
         await writeJson(CONFIG_FILE, cfg);
         ctx.ui.notify(
