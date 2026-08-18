@@ -5,9 +5,16 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import type { CloudConfig } from '../types';
 import { FileError, ErrorCodes, AppError } from '../types';
-import { readJson, readSettings, filterSettings, extractPackages, calculateChecksum, writeJson } from '../helpers';
+import {
+  readJson,
+  readSettings,
+  filterSettings,
+  extractPackages,
+  calculateChecksum,
+  writeJson,
+} from '../helpers';
 import { collectFiles } from '../file-collector';
-import { webdavUpload } from '../cloud/webdav';
+import { webdavUpload, generateBackupFilename } from '../cloud/webdav';
 import { gistUpload } from '../cloud/gist';
 import { BackupHistoryManager } from '../history';
 import { CONFIG_FILE } from '../helpers';
@@ -24,7 +31,10 @@ export function registerBackupCommand(pi: ExtensionAPI): void {
       try {
         cfg = await readJson<CloudConfig>(CONFIG_FILE);
       } catch (err) {
-        if (err instanceof FileError && err.code === ErrorCodes.FILE_NOT_FOUND) {
+        if (
+          err instanceof FileError &&
+          err.code === ErrorCodes.FILE_NOT_FOUND
+        ) {
           // Config file doesn't exist
         } else {
           throw err;
@@ -43,7 +53,7 @@ export function registerBackupCommand(pi: ExtensionAPI): void {
       let selectedProvider = cfg.provider;
       const hasWebdav = !!cfg.webdav;
       const hasGist = !!cfg.gist;
-      
+
       // 如果同时配置了两个服务，让用户选择
       if (hasWebdav && hasGist) {
         const choice = await ctx.ui.select('Select backup target:', [
@@ -70,8 +80,9 @@ export function registerBackupCommand(pi: ExtensionAPI): void {
       try {
         ctx.ui.setStatus('backup', 'Uploading...');
         if (selectedProvider === 'webdav' && cfg.webdav) {
-          await webdavUpload(cfg.webdav, json);
-          ctx.ui.notify('✓ Backed up to WebDAV.', 'info');
+          const filename = generateBackupFilename(cfg.webdav.deviceName);
+          await webdavUpload(cfg.webdav, json, filename);
+          ctx.ui.notify(`✓ Backed up to WebDAV: ${filename}`, 'info');
         } else if (selectedProvider === 'gist' && cfg.gist) {
           const gistId = await gistUpload(cfg.gist, json);
           // Persist the gist ID for future updates

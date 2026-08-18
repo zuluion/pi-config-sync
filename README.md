@@ -71,7 +71,24 @@ pi install git:github.com/zuluion/pi-config-sync
 - WebDAV URL（如 `https://dav.jianguoyun.com/dav/`）
 - 用户名
 - 密码（坚果云中生成应用专用密码）
-- 远程路径（默认 `/pi-config-backup.json`）
+- 设备名称（用于区分不同设备的备份，默认 `pi-config`）
+- 远程目录（默认 `Pi-Config-Sync`）
+
+### 备份文件名格式
+
+```
+{设备名称}_{时区偏移}_{YYYY-MM-DD_HH:mm:ss}.json
+```
+
+示例：`pi-config_28800_2026-08-17_14:30:25.json`
+
+- `pi-config` — 设备名称
+- `28800` — 时区偏移秒数（UTC+8 = 8×3600）
+- `2026-08-17_14:30:25` — 本地时间戳
+
+### 导入时选择文件
+
+从 WebDAV 导入时，会列出远程目录中所有备份文件，显示文件名、修改时间和大小，用户选择后导入对应配置。
 
 ## 使用 GitHub Gist
 

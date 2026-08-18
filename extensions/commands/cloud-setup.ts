@@ -31,16 +31,21 @@ export function registerCloudSetupCommand(pi: ExtensionAPI): void {
         if (!username) return;
         const password = await ctx.ui.input('Password:', '');
         if (!password) return;
+        const deviceName = await ctx.ui.input(
+          'Device name (for distinguishing backups):',
+          'pi-config'
+        );
         const remotePath = await ctx.ui.input(
-          'Remote path:',
-          '/pi-config-backup.json'
+          'Remote directory:',
+          'Pi-Config-Sync'
         );
 
         const webdavConfig = {
           url,
           username,
           password,
-          remotePath: remotePath || '/pi-config-backup.json',
+          deviceName: deviceName || 'pi-config',
+          remotePath: remotePath || 'Pi-Config-Sync',
         };
 
         if (!validateWebDAVConfig(webdavConfig)) {
@@ -55,7 +60,7 @@ export function registerCloudSetupCommand(pi: ExtensionAPI): void {
         } catch {
           // 配置文件不存在，忽略
         }
-        
+
         const cfg: CloudConfig = {
           provider: 'webdav',
           webdav: webdavConfig,
@@ -85,7 +90,7 @@ export function registerCloudSetupCommand(pi: ExtensionAPI): void {
         } catch {
           // 配置文件不存在，忽略
         }
-        
+
         const cfg: CloudConfig = {
           provider: 'gist',
           gist: gistConfig,
@@ -112,7 +117,10 @@ export function registerCloudStatusCommand(pi: ExtensionAPI): void {
       try {
         cfg = await readJson<CloudConfig>(CONFIG_FILE);
       } catch (err) {
-        if (err instanceof FileError && err.code === ErrorCodes.FILE_NOT_FOUND) {
+        if (
+          err instanceof FileError &&
+          err.code === ErrorCodes.FILE_NOT_FOUND
+        ) {
           // Config file doesn't exist
         } else {
           throw err;
@@ -128,21 +136,26 @@ export function registerCloudStatusCommand(pi: ExtensionAPI): void {
       }
 
       const lines: string[] = [];
-      
+
       // 显示默认备份目标
       lines.push(`Default backup target: ${cfg.provider}`);
       lines.push('');
-      
+
       // 显示所有已配置的云服务
       if (cfg.webdav) {
         lines.push('── WebDAV ──');
         lines.push(`  URL: ${cfg.webdav.url}`);
         lines.push(`  Username: ${cfg.webdav.username}`);
-        lines.push(`  Remote path: ${cfg.webdav.remotePath}`);
+        lines.push(
+          `  Device name: ${cfg.webdav.deviceName || 'pi-config'}`
+        );
+        lines.push(
+          `  Remote directory: ${cfg.webdav.remotePath || 'Pi-Config-Sync'}`
+        );
         lines.push(`  Password: ${'*'.repeat(cfg.webdav.password.length)}`);
         lines.push('');
       }
-      
+
       if (cfg.gist) {
         lines.push('── GitHub Gist ──');
         lines.push(`  Token: ${cfg.gist.token.slice(0, 4)}${'*'.repeat(6)}`);
@@ -152,7 +165,7 @@ export function registerCloudStatusCommand(pi: ExtensionAPI): void {
         lines.push(`  Filename: ${cfg.gist.filename}`);
         lines.push('');
       }
-      
+
       if (!cfg.webdav && !cfg.gist) {
         lines.push('No cloud provider configured.');
         lines.push('Run /config-cloud-setup to set up.');

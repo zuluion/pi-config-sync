@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { registerCloudSetupCommand, registerCloudStatusCommand } from '../../commands/cloud-setup';
-import { createMockExtensionAPI, createMockContext, createTestWebDAVConfig, createTestGistConfig } from '../factories';
+import {
+  registerCloudSetupCommand,
+  registerCloudStatusCommand,
+} from '../../commands/cloud-setup';
+import {
+  createMockExtensionAPI,
+  createMockContext,
+  createTestWebDAVConfig,
+  createTestGistConfig,
+} from '../factories';
 import { FileError, ErrorCodes } from '../../types';
 
 // Mock dependencies
@@ -60,37 +68,109 @@ describe('Cloud Setup Command', () => {
     expect(mockCtx.ui.select).toHaveBeenCalled();
   });
 
-  it('should configure WebDAV provider', async () => {
-    const { readJson } = await import('../../helpers');
-    (readJson as any).mockRejectedValue(new Error('File not found'));
-    
-    registerCloudSetupCommand(mockPi as any);
-    const handler = mockPi.registerCommand.mock.calls[0][1].handler;
+  // ─── WebDAV Setup with New Fields ────────────────────────────────────────
 
-    // Mock user inputs
-    mockCtx.ui.select.mockResolvedValue('WebDAV');
-    mockCtx.ui.input
-      .mockResolvedValueOnce('https://dav.example.com/dav/')
-      .mockResolvedValueOnce('testuser')
-      .mockResolvedValueOnce('testpass')
-      .mockResolvedValueOnce('/pi-config-backup.json');
+  describe('WebDAV setup with deviceName and remote directory', () => {
+    it('should prompt for device name and remote directory', async () => {
+      const { readJson } = await import('../../helpers');
+      (readJson as any).mockRejectedValue(new Error('File not found'));
 
-    await handler(undefined, mockCtx);
+      registerCloudSetupCommand(mockPi as any);
+      const handler = mockPi.registerCommand.mock.calls[0][1].handler;
 
-    expect(mockCtx.ui.notify).toHaveBeenCalledWith(
-      expect.stringContaining('WebDAV configured'),
-      'info'
-    );
+      mockCtx.ui.select.mockResolvedValue('WebDAV');
+      mockCtx.ui.input
+        .mockResolvedValueOnce('https://dav.example.com/dav/')
+        .mockResolvedValueOnce('testuser')
+        .mockResolvedValueOnce('testpass')
+        .mockResolvedValueOnce('my-work-pc')
+        .mockResolvedValueOnce('Pi-Config-Sync');
+
+      await handler(undefined, mockCtx);
+
+      // Should have 5 input prompts (url, username, password, deviceName, remotePath)
+      expect(mockCtx.ui.input).toHaveBeenCalledTimes(5);
+
+      // Check device name prompt
+      const deviceNameCall = mockCtx.ui.input.mock.calls[3];
+      expect(deviceNameCall[0]).toContain('Device name');
+      expect(deviceNameCall[1]).toBe('pi-config');
+
+      // Check remote directory prompt
+      const remotePathCall = mockCtx.ui.input.mock.calls[4];
+      expect(remotePathCall[0]).toContain('Remote directory');
+      expect(remotePathCall[1]).toBe('Pi-Config-Sync');
+
+      expect(mockCtx.ui.notify).toHaveBeenCalledWith(
+        expect.stringContaining('WebDAV configured'),
+        'info'
+      );
+    });
+
+    it('should use defaults when user provides empty values', async () => {
+      const { readJson, writeJson } = await import('../../helpers');
+      (readJson as any).mockRejectedValue(new Error('File not found'));
+
+      registerCloudSetupCommand(mockPi as any);
+      const handler = mockPi.registerCommand.mock.calls[0][1].handler;
+
+      mockCtx.ui.select.mockResolvedValue('WebDAV');
+      mockCtx.ui.input
+        .mockResolvedValueOnce('https://dav.example.com/dav/')
+        .mockResolvedValueOnce('testuser')
+        .mockResolvedValueOnce('testpass')
+        .mockResolvedValueOnce('') // empty device name
+        .mockResolvedValueOnce(''); // empty remote path
+
+      await handler(undefined, mockCtx);
+
+      // Should save with defaults
+      expect(writeJson).toHaveBeenCalledWith(
+        '/mock/config.json',
+        expect.objectContaining({
+          webdav: expect.objectContaining({
+            deviceName: 'pi-config',
+            remotePath: 'Pi-Config-Sync',
+          }),
+        })
+      );
+    });
+
+    it('should preserve existing gist config when setting up WebDAV', async () => {
+      const { readJson, writeJson } = await import('../../helpers');
+      const existingGistConfig = createTestGistConfig();
+      (readJson as any).mockResolvedValue(existingGistConfig);
+
+      registerCloudSetupCommand(mockPi as any);
+      const handler = mockPi.registerCommand.mock.calls[0][1].handler;
+
+      mockCtx.ui.select.mockResolvedValue('WebDAV');
+      mockCtx.ui.input
+        .mockResolvedValueOnce('https://dav.example.com/dav/')
+        .mockResolvedValueOnce('testuser')
+        .mockResolvedValueOnce('testpass')
+        .mockResolvedValueOnce('device1')
+        .mockResolvedValueOnce('Backups');
+
+      await handler(undefined, mockCtx);
+
+      expect(writeJson).toHaveBeenCalledWith(
+        '/mock/config.json',
+        expect.objectContaining({
+          provider: 'webdav',
+          gist: existingGistConfig.gist,
+        })
+      );
+    });
   });
 
   it('should configure Gist provider', async () => {
     const { readJson } = await import('../../helpers');
     (readJson as any).mockRejectedValue(new Error('File not found'));
-    
+
     registerCloudSetupCommand(mockPi as any);
     const handler = mockPi.registerCommand.mock.calls[0][1].handler;
 
-    // Mock user inputs
     mockCtx.ui.select.mockResolvedValue('GitHub Gist');
     mockCtx.ui.input.mockResolvedValueOnce('ghp_test1234567890');
 
@@ -110,7 +190,6 @@ describe('Cloud Setup Command', () => {
 
     await handler(undefined, mockCtx);
 
-    // Should not proceed with configuration
     expect(mockCtx.ui.notify).not.toHaveBeenCalledWith(
       expect.stringContaining('configured'),
       'info'
@@ -130,7 +209,9 @@ describe('Cloud Status Command', () => {
 
   it('should show no config message when not configured', async () => {
     const { readJson } = await import('../../helpers');
-    (readJson as any).mockRejectedValue(new FileError('File not found', ErrorCodes.FILE_NOT_FOUND));
+    (readJson as any).mockRejectedValue(
+      new FileError('File not found', ErrorCodes.FILE_NOT_FOUND)
+    );
 
     registerCloudStatusCommand(mockPi as any);
     const handler = mockPi.registerCommand.mock.calls[0][1].handler;
@@ -142,9 +223,12 @@ describe('Cloud Status Command', () => {
     );
   });
 
-  it('should show WebDAV configuration', async () => {
+  it('should show WebDAV configuration with device name', async () => {
     const { readJson } = await import('../../helpers');
-    const testConfig = createTestWebDAVConfig();
+    const testConfig = createTestWebDAVConfig({
+      deviceName: 'work-laptop',
+      remotePath: 'MyBackups',
+    });
 
     (readJson as any).mockResolvedValue(testConfig);
 
@@ -157,11 +241,47 @@ describe('Cloud Status Command', () => {
       'info'
     );
     expect(mockCtx.ui.notify).toHaveBeenCalledWith(
-      expect.stringContaining('── WebDAV ──'),
+      expect.stringContaining('Device name: work-laptop'),
       'info'
     );
     expect(mockCtx.ui.notify).toHaveBeenCalledWith(
-      expect.stringContaining('URL: https://dav.example.com/dav/'),
+      expect.stringContaining('Remote directory: MyBackups'),
+      'info'
+    );
+  });
+
+  it('should show default device name when not set', async () => {
+    const { readJson } = await import('../../helpers');
+    const testConfig = createTestWebDAVConfig();
+    // Remove deviceName
+    delete testConfig.webdav!.deviceName;
+
+    (readJson as any).mockResolvedValue(testConfig);
+
+    registerCloudStatusCommand(mockPi as any);
+    const handler = mockPi.registerCommand.mock.calls[0][1].handler;
+    await handler(undefined, mockCtx);
+
+    expect(mockCtx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining('Device name: pi-config'),
+      'info'
+    );
+  });
+
+  it('should show default remote directory when not set', async () => {
+    const { readJson } = await import('../../helpers');
+    const testConfig = createTestWebDAVConfig();
+    // Remove remotePath
+    delete testConfig.webdav!.remotePath;
+
+    (readJson as any).mockResolvedValue(testConfig);
+
+    registerCloudStatusCommand(mockPi as any);
+    const handler = mockPi.registerCommand.mock.calls[0][1].handler;
+    await handler(undefined, mockCtx);
+
+    expect(mockCtx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining('Remote directory: Pi-Config-Sync'),
       'info'
     );
   });

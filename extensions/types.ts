@@ -19,6 +19,7 @@ export interface WebDAVConfig {
   username: string;
   password: string;
   remotePath?: string;
+  deviceName?: string;
 }
 
 export interface GistConfig {

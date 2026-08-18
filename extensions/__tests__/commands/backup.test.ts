@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { registerBackupCommand } from '../../commands/backup';
-import { createMockExtensionAPI, createMockContext, createTestWebDAVConfig, createTestGistConfig } from '../factories';
+import {
+  createMockExtensionAPI,
+  createMockContext,
+  createTestWebDAVConfig,
+  createTestGistConfig,
+} from '../factories';
 import { FileError, ErrorCodes } from '../../types';
 
 // Mock dependencies
@@ -20,6 +25,7 @@ vi.mock('../../file-collector', () => ({
 
 vi.mock('../../cloud/webdav', () => ({
   webdavUpload: vi.fn(),
+  generateBackupFilename: vi.fn(() => 'pi-config_28800_2026-08-17_14:30:00.json'),
 }));
 
 vi.mock('../../cloud/gist', () => ({
@@ -31,8 +37,6 @@ vi.mock('../../history', () => ({
     addRecord: vi.fn(),
   })),
 }));
-
-// Removed error-handler mock for simplicity
 
 describe('Backup Command', () => {
   let mockPi: ReturnType<typeof createMockExtensionAPI>;
@@ -56,7 +60,9 @@ describe('Backup Command', () => {
 
   it('should show error when no cloud provider configured', async () => {
     const { readJson } = await import('../../helpers');
-    (readJson as any).mockRejectedValue(new FileError('File not found', ErrorCodes.FILE_NOT_FOUND));
+    (readJson as any).mockRejectedValue(
+      new FileError('File not found', ErrorCodes.FILE_NOT_FOUND)
+    );
 
     registerBackupCommand(mockPi as any);
     const handler = mockPi.registerCommand.mock.calls[0][1].handler;
@@ -68,9 +74,11 @@ describe('Backup Command', () => {
     );
   });
 
-  it('should backup to WebDAV', async () => {
+  it('should backup to WebDAV with generated filename', async () => {
     const { readJson } = await import('../../helpers');
-    const { webdavUpload } = await import('../../cloud/webdav');
+    const { webdavUpload, generateBackupFilename } = await import(
+      '../../cloud/webdav'
+    );
     const testConfig = createTestWebDAVConfig();
 
     (readJson as any).mockResolvedValue(testConfig);
@@ -79,11 +87,30 @@ describe('Backup Command', () => {
     const handler = mockPi.registerCommand.mock.calls[0][1].handler;
     await handler(undefined, mockCtx);
 
-    expect(webdavUpload).toHaveBeenCalled();
+    expect(generateBackupFilename).toHaveBeenCalledWith('pi-config');
+    expect(webdavUpload).toHaveBeenCalledWith(
+      testConfig.webdav,
+      expect.any(String),
+      'pi-config_28800_2026-08-17_14:30:00.json'
+    );
     expect(mockCtx.ui.notify).toHaveBeenCalledWith(
-      expect.stringContaining('Backed up to WebDAV'),
+      expect.stringContaining('Backed up to WebDAV: pi-config_28800_2026-08-17_14:30:00.json'),
       'info'
     );
+  });
+
+  it('should use custom deviceName in filename', async () => {
+    const { readJson } = await import('../../helpers');
+    const { generateBackupFilename } = await import('../../cloud/webdav');
+    const testConfig = createTestWebDAVConfig({ deviceName: 'work-laptop' });
+
+    (readJson as any).mockResolvedValue(testConfig);
+
+    registerBackupCommand(mockPi as any);
+    const handler = mockPi.registerCommand.mock.calls[0][1].handler;
+    await handler(undefined, mockCtx);
+
+    expect(generateBackupFilename).toHaveBeenCalledWith('work-laptop');
   });
 
   it('should backup to Gist', async () => {
@@ -138,5 +165,26 @@ describe('Backup Command', () => {
       expect.stringContaining('Backup failed'),
       'error'
     );
+  });
+
+  it('should let user choose when both providers configured', async () => {
+    const { readJson } = await import('../../helpers');
+    const testConfig = {
+      provider: 'webdav' as const,
+      webdav: createTestWebDAVConfig().webdav,
+      gist: createTestGistConfig().gist,
+    };
+
+    (readJson as any).mockResolvedValue(testConfig);
+    mockCtx.ui.select.mockResolvedValue('GitHub Gist');
+
+    registerBackupCommand(mockPi as any);
+    const handler = mockPi.registerCommand.mock.calls[0][1].handler;
+    await handler(undefined, mockCtx);
+
+    expect(mockCtx.ui.select).toHaveBeenCalledWith('Select backup target:', [
+      'WebDAV',
+      'GitHub Gist',
+    ]);
   });
 });

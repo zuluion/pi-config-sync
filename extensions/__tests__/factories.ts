@@ -31,7 +31,8 @@ export function createTestWebDAVConfig(
       url: 'https://dav.example.com/dav/',
       username: 'testuser',
       password: 'testpass',
-      remotePath: '/pi-config-backup.json',
+      remotePath: 'Pi-Config-Sync',
+      deviceName: 'pi-config',
       ...overrides,
     },
   };
