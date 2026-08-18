@@ -15,10 +15,16 @@ export async function webdavRequest(
   body?: string
 ): Promise<Response> {
   const base = config.url.replace(/\/+$/, '');
-  const remotePath = (config.remotePath || '/pi-config-backup.json').replace(
+  let remotePath = (config.remotePath || '/pi-config-backup.json').replace(
     /^\/+/,
     ''
   );
+  
+  // 如果 remotePath 没有文件扩展名，自动添加默认文件名
+  if (remotePath && !remotePath.includes('.')) {
+    remotePath = `${remotePath}/pi-config-backup.json`;
+  }
+  
   const url = `${base}/${remotePath}${path ? `/${path}` : ''}`;
 
   const headers: Record<string, string> = {
@@ -70,9 +76,19 @@ export async function webdavUpload(
   data: string
 ): Promise<void> {
   // Ensure remote directory exists (MKCOL)
-  const remoteDir = (config.remotePath || '/pi-config-backup.json')
-    .replace(/\/[^/]+$/, '')
+  let remoteDir = (config.remotePath || '/pi-config-backup.json')
     .replace(/^\/+/, '');
+  
+  // 提取目录部分
+  if (remoteDir.includes('/')) {
+    // remotePath 包含路径分隔符，提取目录部分
+    remoteDir = remoteDir.replace(/\/[^/]+$/, '');
+  } else if (remoteDir.includes('.')) {
+    // remotePath 只是一个文件名（如 pi-config-backup.json），没有目录
+    remoteDir = '';
+  }
+  // 否则 remoteDir 就是目录名本身（如 Pi-Config-Sync）
+  
   if (remoteDir) {
     const base = config.url.replace(/\/+$/, '');
     const dirUrl = `${base}/${remoteDir}`;
