@@ -226,9 +226,6 @@ function parsePROPFIND(xml: string, dirPrefix: string): WebDAVFileInfo[] {
 
 export function generateBackupFilename(deviceName?: string): string {
   const name = deviceName || 'pi-config';
-  // Timezone offset in seconds (east of UTC)
-  const tzOffsetSec = new Date().getTimezoneOffset() * -60;
-  // Local time components
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
   const y = now.getFullYear();
@@ -237,7 +234,7 @@ export function generateBackupFilename(deviceName?: string): string {
   const hh = pad(now.getHours());
   const mm = pad(now.getMinutes());
   const ss = pad(now.getSeconds());
-  return `${name}_${tzOffsetSec}_${y}-${m}-${d}_${hh}-${mm}-${ss}.json`;
+  return `pi-config-backup_${name}_${y}-${m}-${d}_${hh}-${mm}-${ss}.json`;
 }
 
 // ─── Validate WebDAV Config ──────────────────────────────────────────────────
