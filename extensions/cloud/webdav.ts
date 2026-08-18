@@ -237,7 +237,7 @@ export function generateBackupFilename(deviceName?: string): string {
   const hh = pad(now.getHours());
   const mm = pad(now.getMinutes());
   const ss = pad(now.getSeconds());
-  return `${name}_${tzOffsetSec}_${y}-${m}-${d}_${hh}:${mm}:${ss}.json`;
+  return `${name}_${tzOffsetSec}_${y}-${m}-${d}_${hh}-${mm}-${ss}.json`;
 }
 
 // ─── Validate WebDAV Config ──────────────────────────────────────────────────

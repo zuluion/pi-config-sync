@@ -39,13 +39,13 @@ describe('WebDAV Adapter', () => {
       mockFetch.mockResolvedValueOnce({ ok: true, statusText: 'OK' });
 
       await expect(
-        webdavUpload(config, 'test data', 'backup_28800_2026-08-17_14:30:00.json')
+        webdavUpload(config, 'test data', 'backup_28800_2026-08-17_14-30-00.json')
       ).resolves.toBeUndefined();
       expect(mockFetch).toHaveBeenCalledTimes(2);
 
       // Verify PUT URL includes the filename
       const putCall = mockFetch.mock.calls[1];
-      expect(putCall[0]).toContain('Pi-Config-Sync/backup_28800_2026-08-17_14:30:00.json');
+      expect(putCall[0]).toContain('Pi-Config-Sync/backup_28800_2026-08-17_14-30-00.json');
     });
 
     it('should use default filename when not provided', async () => {
@@ -182,12 +182,12 @@ describe('WebDAV Adapter', () => {
     it('should list JSON files in directory', async () => {
       const xml = createPROPFINDResponse([
         {
-          href: '/Pi-Config-Sync/pi-config_28800_2026-08-17_14:30:00.json',
+          href: '/Pi-Config-Sync/pi-config_28800_2026-08-17_14-30-00.json',
           lastModified: 'Mon, 17 Aug 2026 06:30:00 GMT',
           size: 12345,
         },
         {
-          href: '/Pi-Config-Sync/pi-config_28800_2026-08-16_10:00:00.json',
+          href: '/Pi-Config-Sync/pi-config_28800_2026-08-16_10-00-00.json',
           lastModified: 'Sun, 16 Aug 2026 02:00:00 GMT',
           size: 11000,
         },
@@ -207,10 +207,10 @@ describe('WebDAV Adapter', () => {
 
       // Should only include .json files
       expect(files).toHaveLength(2);
-      expect(files[0].name).toBe('pi-config_28800_2026-08-17_14:30:00.json');
+      expect(files[0].name).toBe('pi-config_28800_2026-08-17_14-30-00.json');
       expect(files[0].lastModified).toBe('Mon, 17 Aug 2026 06:30:00 GMT');
       expect(files[0].size).toBe(12345);
-      expect(files[1].name).toBe('pi-config_28800_2026-08-16_10:00:00.json');
+      expect(files[1].name).toBe('pi-config_28800_2026-08-16_10-00-00.json');
     });
 
     it('should sort files by name descending (newest first)', async () => {
@@ -293,7 +293,7 @@ describe('WebDAV Adapter', () => {
       const filename = generateBackupFilename('my-pc');
 
       // Format: {deviceName}_{tzOffset}_{YYYY-MM-DD_HH:mm:ss}.json
-      expect(filename).toMatch(/^my-pc_-?\d+_\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2}\.json$/);
+      expect(filename).toMatch(/^my-pc_-?\d+_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.json$/);
     });
 
     it('should use default device name when not provided', () => {
@@ -317,8 +317,8 @@ describe('WebDAV Adapter', () => {
       expect(filename).toContain(`${now.getFullYear()}-`);
       expect(filename).toContain(`${pad(now.getMonth() + 1)}-`);
       expect(filename).toContain(`${pad(now.getDate())}_`);
-      expect(filename).toContain(`${pad(now.getHours())}:`);
-      expect(filename).toContain(`${pad(now.getMinutes())}:`);
+      expect(filename).toContain(`${pad(now.getHours())}-`);
+      expect(filename).toContain(`${pad(now.getMinutes())}-`);
       expect(filename).toContain(`${pad(now.getSeconds())}.json`);
     });
 

@@ -25,7 +25,7 @@ vi.mock('../../file-collector', () => ({
 
 vi.mock('../../cloud/webdav', () => ({
   webdavUpload: vi.fn(),
-  generateBackupFilename: vi.fn(() => 'pi-config_28800_2026-08-17_14:30:00.json'),
+  generateBackupFilename: vi.fn(() => 'pi-config_28800_2026-08-17_14-30-00.json'),
 }));
 
 vi.mock('../../cloud/gist', () => ({
@@ -91,10 +91,10 @@ describe('Backup Command', () => {
     expect(webdavUpload).toHaveBeenCalledWith(
       testConfig.webdav,
       expect.any(String),
-      'pi-config_28800_2026-08-17_14:30:00.json'
+      'pi-config_28800_2026-08-17_14-30-00.json'
     );
     expect(mockCtx.ui.notify).toHaveBeenCalledWith(
-      expect.stringContaining('Backed up to WebDAV: pi-config_28800_2026-08-17_14:30:00.json'),
+      expect.stringContaining('Backed up to WebDAV: pi-config_28800_2026-08-17_14-30-00.json'),
       'info'
     );
   });

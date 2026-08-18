@@ -95,21 +95,21 @@ describe('Import Command', () => {
       (readJson as any).mockResolvedValue(testConfig);
       (webdavList as any).mockResolvedValue([
         {
-          name: 'pi-config_28800_2026-08-17_14:30:00.json',
-          path: 'Pi-Config-Sync/pi-config_28800_2026-08-17_14:30:00.json',
+          name: 'pi-config_28800_2026-08-17_14-30-00.json',
+          path: 'Pi-Config-Sync/pi-config_28800_2026-08-17_14-30-00.json',
           lastModified: 'Mon, 17 Aug 2026 06:30:00 GMT',
           size: 12345,
         },
         {
-          name: 'pi-config_28800_2026-08-16_10:00:00.json',
-          path: 'Pi-Config-Sync/pi-config_28800_2026-08-16_10:00:00.json',
+          name: 'pi-config_28800_2026-08-16_10-00-00.json',
+          path: 'Pi-Config-Sync/pi-config_28800_2026-08-16_10-00-00.json',
           lastModified: 'Sun, 16 Aug 2026 02:00:00 GMT',
           size: 11000,
         },
       ]);
       (webdavDownload as any).mockResolvedValue(JSON.stringify(testBackup));
       mockCtx.ui.select.mockResolvedValue(
-        'pi-config_28800_2026-08-17_14:30:00.json  |  modified: Mon, 17 Aug 2026 06:30:00 GMT  |  12.1 KB'
+        'pi-config_28800_2026-08-17_14-30-00.json  |  modified: Mon, 17 Aug 2026 06:30:00 GMT  |  12.1 KB'
       );
 
       registerImportCommand(mockPi as any);
@@ -122,13 +122,13 @@ describe('Import Command', () => {
       expect(mockCtx.ui.select).toHaveBeenCalledWith(
         'Select a backup to import:',
         expect.arrayContaining([
-          expect.stringContaining('pi-config_28800_2026-08-17_14:30:00.json'),
+          expect.stringContaining('pi-config_28800_2026-08-17_14-30-00.json'),
         ])
       );
       // Should download selected file
       expect(webdavDownload).toHaveBeenCalledWith(
         testConfig.webdav,
-        'Pi-Config-Sync/pi-config_28800_2026-08-17_14:30:00.json'
+        'Pi-Config-Sync/pi-config_28800_2026-08-17_14-30-00.json'
       );
       // Should complete import
       expect(mockCtx.ui.notify).toHaveBeenCalledWith(
