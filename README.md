@@ -77,14 +77,16 @@ pi install git:github.com/zuluion/pi-config-sync
 ### 备份文件名格式
 
 ```
-{设备名称}_{时区偏移}_{YYYY-MM-DD_HH:mm:ss}.json
+pi-config-backup_{设备名称}_{YYYY-MM-DD}_{HH}-{mm}-{ss}.json
 ```
 
-示例：`pi-config_28800_2026-08-17_14:30:25.json`
+示例：`pi-config-backup_14400_2026-08-17_14-30-25.json`
 
-- `pi-config` — 设备名称
-- `28800` — 时区偏移秒数（UTC+8 = 8×3600）
-- `2026-08-17_14:30:25` — 本地时间戳
+- `pi-config-backup` — 固定前缀
+- `14400` — 设备名称（配置时自定义）
+- `2026-08-17_14-30-25` — 本地时间戳
+
+> 文件名中不包含特殊字符（如冒号），兼容坚果云等 WebDAV 服务的文件名限制。
 
 ### 导入时选择文件
 
