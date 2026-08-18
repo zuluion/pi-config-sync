@@ -4,6 +4,15 @@
   "description": "Pi coding agent config migration & cloud backup extension",
   "keywords": ["pi-package"],
   "license": "MIT",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "vitest": "^1.0.0",
+    "@vitest/coverage-v8": "^1.0.0"
+  },
   "pi": {
     "extensions": ["./extensions"]
   }

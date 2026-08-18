@@ -83,6 +83,20 @@ pi install git:github.com/YOUR_USER/pi-config-sync
 
 云服务凭据存储在 `~/.pi/agent/config-backup.json`，不会同步到云端。
 
+## 开发
+
+### 设计文档
+
+详细的改进设计方案请参考：[docs/DESIGN.md](docs/DESIGN.md)
+
+该文档包含：
+- 模块化拆分设计
+- 测试策略
+- 错误处理机制
+- 备份历史功能
+- 重试机制
+- 开发顺序和实施计划
+
 ## License
 
 MIT
