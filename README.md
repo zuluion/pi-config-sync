@@ -20,7 +20,7 @@ Pi coding agent 的配置迁移与云备份插件。支持在多台设备间同�
 ## 安装
 
 ```bash
-pi install git:github.com/YOUR_USER/pi-config-sync
+pi install git:github.com/zuluion/pi-config-sync
 ```
 
 ## 命令

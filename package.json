@@ -2,8 +2,23 @@
   "name": "pi-config-sync",
   "version": "1.0.0",
   "description": "Pi coding agent config migration & cloud backup extension",
-  "keywords": ["pi-package"],
+  "keywords": ["pi-package", "config", "backup", "webdav", "gist"],
   "license": "MIT",
+  "author": "zuluion",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zuluion/pi-config-sync.git"
+  },
+  "homepage": "https://github.com/zuluion/pi-config-sync#readme",
+  "bugs": {
+    "url": "https://github.com/zuluion/pi-config-sync/issues"
+  },
+  "files": [
+    "extensions/",
+    "types/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",

@@ -17,7 +17,7 @@ declare module '@earendil-works/pi-coding-agent' {
       setStatus(id: string, status: string | undefined): void;
       select(
         message: string,
-        options: Array<{ label: string; value: string }>
+        options: string[]
       ): Promise<string | null>;
       input(message: string, placeholder?: string): Promise<string | null>;
       confirm(title: string, message: string): Promise<boolean>;
