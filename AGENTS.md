@@ -31,7 +31,7 @@ type(scope): 简短描述
 ```
 - type: feat / fix / refactor / chore / docs / test / style / perf
 - scope 可选，描述用英文，祈使句，首字母小写，结尾不加句号
-- 文件树列出所有变更文件，每个文件附简要变更说明
+- 文件树列出所有变更文件，每个文件的简要变更说明必须使用中文
 
 ### 分支命名
 ```
