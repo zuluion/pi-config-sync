@@ -13,7 +13,8 @@ import { FileError, ErrorCodes } from './types';
 export async function collectFiles(): Promise<Record<string, string>> {
   const files: Record<string, string> = {};
 
-  for (const target of BACKUP_TARGETS) {
+  // Process targets in parallel
+  const promises = BACKUP_TARGETS.map(async (target) => {
     if (typeof target === 'string') {
       // Single file
       const fullPath = join(PI_AGENT, target);
@@ -32,8 +33,9 @@ export async function collectFiles(): Promise<Record<string, string>> {
         // skip missing dirs
       }
     }
-  }
+  });
 
+  await Promise.all(promises);
   return files;
 }
 
@@ -43,7 +45,9 @@ async function collectDir(
   files: Record<string, string>
 ): Promise<void> {
   const entries = await readdir(absDir, { withFileTypes: true });
-  for (const entry of entries) {
+  
+  // Process entries in parallel
+  const promises = entries.map(async (entry) => {
     const absPath = join(absDir, entry.name);
     const relPath = `${relPrefix}/${entry.name}`;
     if (entry.isDirectory()) {
@@ -56,14 +60,18 @@ async function collectDir(
         // skip unreadable
       }
     }
-  }
+  });
+
+  await Promise.all(promises);
 }
 
 // ─── File Restoration ────────────────────────────────────────────────────────
 
 export async function restoreFiles(files: Record<string, string>): Promise<number> {
   let count = 0;
-  for (const [relPath, b64Content] of Object.entries(files)) {
+  
+  // Process files in parallel
+  const promises = Object.entries(files).map(async ([relPath, b64Content]) => {
     const absPath = join(PI_AGENT, relPath);
     try {
       await mkdir(join(absPath, '..'), { recursive: true });
@@ -76,6 +84,8 @@ export async function restoreFiles(files: Record<string, string>): Promise<numbe
         err instanceof Error ? err : undefined
       );
     }
-  }
+  });
+
+  await Promise.all(promises);
   return count;
 }

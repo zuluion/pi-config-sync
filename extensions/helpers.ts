@@ -131,6 +131,8 @@ export async function withRetry<T>(
     retryableErrors = [ErrorCodes.CLOUD_NETWORK_ERROR],
   } = options;
 
+  let lastError: unknown;
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const result = await Promise.race([
@@ -141,6 +143,7 @@ export async function withRetry<T>(
       ]);
       return result;
     } catch (err) {
+      lastError = err;
       const isLastAttempt = attempt === maxRetries;
       const isRetryable =
         err instanceof Error &&
@@ -157,5 +160,5 @@ export async function withRetry<T>(
     }
   }
 
-  throw new Error('Max retries exceeded');
+  throw lastError || new Error('Max retries exceeded');
 }

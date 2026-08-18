@@ -4,13 +4,14 @@
 
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import type { CloudConfig } from '../types';
-import { FileError, ErrorCodes } from '../types';
+import { FileError, ErrorCodes, AppError } from '../types';
 import { readJson, readSettings, filterSettings, extractPackages, calculateChecksum } from '../helpers';
 import { collectFiles } from '../file-collector';
 import { webdavUpload } from '../cloud/webdav';
 import { gistUpload } from '../cloud/gist';
 import { BackupHistoryManager } from '../history';
 import { CONFIG_FILE } from '../helpers';
+import { handleCommandError, getErrorSuggestion } from '../error-handler';
 
 // ─── Config Backup Command ───────────────────────────────────────────────────
 

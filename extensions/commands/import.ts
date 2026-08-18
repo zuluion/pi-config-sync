@@ -5,7 +5,8 @@
 import { readFile } from 'node:fs/promises';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import type { BackupData, CloudConfig } from '../types';
-import { FileError, ValidationError, ErrorCodes } from '../types';
+import { FileError, ValidationError, ErrorCodes, AppError } from '../types';
+import { handleCommandError, getErrorSuggestion } from '../error-handler';
 import { readJson, readSettings, writeJson, SETTINGS_FILE, CONFIG_FILE } from '../helpers';
 import { restoreFiles } from '../file-collector';
 import { webdavDownload } from '../cloud/webdav';
@@ -53,10 +54,9 @@ export function registerImportCommand(pi: ExtensionAPI): void {
             const json = await webdavDownload(cfg.webdav);
             data = JSON.parse(json);
           } catch (err: unknown) {
-            ctx.ui.notify(
-              `WebDAV download failed: ${err instanceof Error ? err.message : err}`,
-              'error'
-            );
+            handleCommandError(ctx, err, 'WebDAV download');
+            const suggestion = err instanceof AppError ? getErrorSuggestion(err) : null;
+            if (suggestion) ctx.ui.notify(suggestion, 'info');
             return;
           } finally {
             ctx.ui.setStatus('import', undefined);
@@ -68,10 +68,9 @@ export function registerImportCommand(pi: ExtensionAPI): void {
             const json = await gistDownload(cfg.gist);
             data = JSON.parse(json);
           } catch (err: unknown) {
-            ctx.ui.notify(
-              `Gist download failed: ${err instanceof Error ? err.message : err}`,
-              'error'
-            );
+            handleCommandError(ctx, err, 'Gist download');
+            const suggestion = err instanceof AppError ? getErrorSuggestion(err) : null;
+            if (suggestion) ctx.ui.notify(suggestion, 'info');
             return;
           } finally {
             ctx.ui.setStatus('import', undefined);
@@ -89,10 +88,9 @@ export function registerImportCommand(pi: ExtensionAPI): void {
         try {
           data = await readJson<BackupData>(source);
         } catch (err: unknown) {
-          ctx.ui.notify(
-            `Read failed: ${err instanceof Error ? err.message : err}`,
-            'error'
-          );
+          handleCommandError(ctx, err, 'file read');
+          const suggestion = err instanceof AppError ? getErrorSuggestion(err) : null;
+          if (suggestion) ctx.ui.notify(suggestion, 'info');
           return;
         }
       }

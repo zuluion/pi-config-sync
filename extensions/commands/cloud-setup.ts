@@ -4,7 +4,8 @@
 
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import type { CloudConfig } from '../types';
-import { FileError, ErrorCodes } from '../types';
+import { FileError, ErrorCodes, AppError } from '../types';
+import { handleCommandError, getErrorSuggestion } from '../error-handler';
 import { readJson, writeJson, CONFIG_FILE } from '../helpers';
 import { validateWebDAVConfig } from '../cloud/webdav';
 import { validateGistConfig } from '../cloud/gist';
