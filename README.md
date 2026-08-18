@@ -1,5 +1,7 @@
 # pi-config-sync
 
+[![CI](https://github.com/zuluion/pi-config-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/zuluion/pi-config-sync/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![GitHub release](https://img.shields.io/github/v/release/zuluion/pi-config-sync)](https://github.com/zuluion/pi-config-sync/releases) [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org/)
+
 Pi coding agent 的配置迁移与云备份插件。支持在多台设备间同步 pi 的设置、插件、自定义扩展等配置。
 
 ## 功能
