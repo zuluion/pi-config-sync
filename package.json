@@ -18,6 +18,6 @@
     "@vitest/coverage-v8": "^1.0.0"
   },
   "pi": {
-    "extensions": ["./extensions"]
+    "extensions": ["./extensions/config-migration.ts"]
   }
 }
