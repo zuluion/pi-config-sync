@@ -328,3 +328,56 @@ All files          |   81.54 |    74.42 |   77.27 |   81.54 |
 ## 8. 总结
 
 `pi-config-sync` 具备非常好的实用价值与清晰的设计蓝图，模块化拆分已基本就绪。在进入实际多设备投产前，重点需要解决**文件恢复的路径安全防范**与**云端重试在 HTTP 层的实质生效**。完成上述优化后，项目的健壮性、数据安全性与用户体验将达到成熟的生产级质量水准。
+
+---
+
+## 9. 修复与验证更新记录（2026-08-18 更新）
+
+- **修复提交**：[`commit 5dd560c`](file:///D:/AllProjects/OtherProjects_Workspace/pi-config-sync) (`fix(core): fix critical bugs and improve code quality`)
+- **分支状态**：已合并至 `main` 主分支
+- **验收结果**：报告中指出的 **BUG-01 至 BUG-10 全部问题均已彻底修复并通过回归验证**。
+
+### 9.1 问题修复核销对照表
+
+| 缺陷编号 | 严重级别 | 缺陷描述 | 修复落地方式 | 修复状态 |
+|:---:|:---:|:---|:---|:---:|
+| **BUG-01** | 🔴 P0 | `restoreFiles` 路径穿越漏洞 | `file-collector.ts` 增加 `resolve` 规范化与 `PI_AGENT` 前缀及分隔符边界校验，逃逸直接抛出 `FILE_PERMISSION_ERROR` | ✅ **已修复 (Closed)** |
+| **BUG-02** | 🔴 P0 | `withRetry` 外部判断导致 HTTP 5xx/429 重试失效 | `webdav.ts` 与 `gist.ts` 将状态码检查内聚至请求方法，5xx/429 转换为可重试错误；`helpers.ts` 改造支持原生 `TypeError` 与通用重试判断 | ✅ **已修复 (Closed)** |
+| **BUG-03** | 🟠 P1 | UTF-8 文本流破坏二进制扩展与主题资源 | `helpers.ts` 支持 Buffer 编解码；`file-collector.ts` 读写全面切换为二进制 Buffer 直接流转 | ✅ **已修复 (Closed)** |
+| **BUG-04** | 🟠 P1 | Checksum 计算忽略 `files` 字段 | `helpers.ts` 按 key 排序遍历计算 `data.files` 的 SHA-256 哈希 | ✅ **已修复 (Closed)** |
+| **BUG-05** | 🟡 P2 | `withRetry` 定时器泄漏 | `helpers.ts` 在所有成功与异常捕获分支显式调用 `clearTimeout(timer)` | ✅ **已修复 (Closed)** |
+| **BUG-06** | 🟡 P2 | 命令层部分错误未捕获直接 throw | `export.ts` 和 `import.ts` 增加顶层 `try...catch` 并接入 `handleCommandError` | ✅ **已修复 (Closed)** |
+| **BUG-07** | 🟡 P2 | `error-handler.ts` 正则提取脆弱与死导入 | 移除脆弱的 `extractErrorInfo` 正则；清理 `backup.ts` 与 `cloud-setup.ts` 中的未用导入和重复动态 import | ✅ **已修复 (Closed)** |
+| **BUG-08** | 🟡 P2 | 导入设置时二次覆写 `settings.json` | `import.ts` 调用 `restoreFiles` 时显式排除 `settings.json`，统一由合并逻辑落盘 | ✅ **已修复 (Closed)** |
+| **BUG-09** | 🟢 P3 | 缺失 TypeScript 配置与类型检查 | 新增 `tsconfig.json`、`types/pi-coding-agent.d.ts`，`package.json` 添加 `typecheck` 脚本，`tsc --noEmit` 0 错误 | ✅ **已修复 (Closed)** |
+| **BUG-10** | 🟢 P3 | 云端测试用例跳过网络异常与重试分支 | 补全 `webdav.test.ts` 与 `gist.test.ts` 中的 503 重试、网络故障重试与认证失败测试 | ✅ **已修复 (Closed)** |
+
+### 9.2 修复后最新测试与覆盖率数据
+
+```
+ % Coverage report from v8 (Vitest) - 2026-08-18 (Post-Fix)
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | 状态变化
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   87.31 |    77.25 |   79.36 |   87.31 | 81.54% ➔ 87.31% (+5.77%)
+ extensions        |   83.68 |    82.17 |   70.45 |   83.68 | 
+  error-handler.ts |   60.67 |    66.66 |   14.28 |   60.67 | 40.16% ➔ 60.67% (+20.51%)
+  file-collector.ts|   86.72 |       80 |     100 |   86.72 | 路径安全校验生效
+  helpers.ts       |   86.63 |    77.55 |     100 |   86.63 | 重试/Buffer/哈希修复
+  history.ts       |     100 |      100 |     100 |     100 | 
+  types.ts         |     100 |      100 |     100 |     100 | 
+ extensions/cloud  |   90.90 |    83.82 |     100 |   90.90 | 72.66% ➔ 90.90% (+18.24%)
+  gist.ts          |   95.62 |    85.71 |     100 |   95.62 | 78.52% ➔ 95.62% (+17.10%)
+  webdav.ts        |   85.34 |    81.81 |     100 |   85.34 | 65.89% ➔ 85.34% (+19.45%)
+ extensions/commands   90.64 |    66.27 |     100 |   90.64 | 
+  backup.ts        |   95.09 |    76.47 |     100 |   95.09 | 
+  cloud-setup.ts   |   93.70 |    60.86 |     100 |   93.70 | 
+  export.ts        |   96.22 |    60.00 |     100 |   96.22 | 异常保护生效
+  import.ts        |   83.83 |    65.85 |     100 |   83.83 | 异常保护生效
+-------------------|---------|----------|---------|---------|-------------------
+```
+
+- **测试用例**：11 个测试文件，**112 个测试用例 100% 通过**
+- **类型检查**：`npm run typecheck` **0 错误**
+- **项目状态**：**生产就绪（Production Ready）**
+
