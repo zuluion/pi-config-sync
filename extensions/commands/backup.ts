@@ -39,6 +39,21 @@ export function registerBackupCommand(pi: ExtensionAPI): void {
         return;
       }
 
+      // 确定使用哪个云服务
+      let selectedProvider = cfg.provider;
+      const hasWebdav = !!cfg.webdav;
+      const hasGist = !!cfg.gist;
+      
+      // 如果同时配置了两个服务，让用户选择
+      if (hasWebdav && hasGist) {
+        const choice = await ctx.ui.select('Select backup target:', [
+          'WebDAV',
+          'GitHub Gist',
+        ]);
+        if (!choice) return;
+        selectedProvider = choice === 'WebDAV' ? 'webdav' : 'gist';
+      }
+
       const settings = await readSettings();
       const data = {
         version: 1 as const,
@@ -54,10 +69,10 @@ export function registerBackupCommand(pi: ExtensionAPI): void {
 
       try {
         ctx.ui.setStatus('backup', 'Uploading...');
-        if (cfg.provider === 'webdav' && cfg.webdav) {
+        if (selectedProvider === 'webdav' && cfg.webdav) {
           await webdavUpload(cfg.webdav, json);
           ctx.ui.notify('✓ Backed up to WebDAV.', 'info');
-        } else if (cfg.provider === 'gist' && cfg.gist) {
+        } else if (selectedProvider === 'gist' && cfg.gist) {
           const gistId = await gistUpload(cfg.gist, json);
           // Persist the gist ID for future updates
           if (!cfg.gist.gistId) {
@@ -70,7 +85,7 @@ export function registerBackupCommand(pi: ExtensionAPI): void {
         // Record success in history
         await historyManager.addRecord({
           timestamp: new Date().toISOString(),
-          source: cfg.provider,
+          source: selectedProvider,
           status: 'success',
           fileCount: Object.keys(data.files).length,
           packageCount: data.packages.length,
@@ -81,7 +96,7 @@ export function registerBackupCommand(pi: ExtensionAPI): void {
         // Record failure in history
         await historyManager.addRecord({
           timestamp: new Date().toISOString(),
-          source: cfg.provider,
+          source: selectedProvider,
           status: 'failed',
           fileCount: Object.keys(data.files).length,
           packageCount: data.packages.length,
